@@ -1,12 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import Workspace from "./Workspace";
 import SearchBox from "./SearchBox";
 import * as Request from "./Request";
 import "./App.scss";
-
-// Request.addNote({text: 'aaa', datetime: '123'}).then(console.log);
-Request.getAllNotes().then(console.log);
 
 function App() {
     const [notes, setNotes] = useState([]);
@@ -14,30 +11,48 @@ function App() {
     const [editMode, setEditMode] = useState(false);
     const [searchText, setSearchText] = useState("");
 
+    useEffect(() => {
+        Request.getAllNotes().then((result) => setNotes(result));
+    }, []);
+
     const onNoteAdd = () => {
         Request.addNote({
             text: "", 
             date: new Date().toLocaleDateString(), 
             time: new Date().toLocaleTimeString()
             }).then(() => {
-            Request.getAllNotes().then((result) => setNotes(result));
+            Request.getAllNotes().then((result) => {
+                setNotes(result);
+                setSelectedNote(result[result.length-1]);
+            });
         });
     };
 
     const onNoteDelete = () => {
         Request.deleteNote(selectedNote.id).then(() => {
-            Request.getAllNotes().then((result) => setNotes(result));
+            Request.getAllNotes().then((result) => {
+                setNotes(result);
+                setSelectedNote(null);
+            });
         });
     };
 
     const onNoteEdit = (note) => {
+        note.date = new Date().toLocaleDateString(); 
+        note.time = new Date().toLocaleTimeString();
         Request.updateNote(note).then(() => {
-            Request.getAllNotes().then((result) => setNotes(result));
+            Request.getAllNotes().then((result) => {
+                setNotes(result);
+                setSelectedNote(note);
+            });
         });
     };
 
     const handleSelectNote = (note) => {
-        setSelectedNote(note);
+        if (!selectedNote || note.id !== selectedNote.id) {
+            setSelectedNote(note);
+            setEditMode(false);
+        }
     };
 
     const handleEditMode = () => {
@@ -46,6 +61,8 @@ function App() {
 
     const handleSearchChange = (event) => {
         setSearchText(event.target.value);
+        setSelectedNote(null);
+        setEditMode(false);
     };
 
     return (
@@ -53,6 +70,8 @@ function App() {
             <Sidebar
                 notes={notes}
                 selectedNote={selectedNote}
+                editMode={editMode}
+                searchText={searchText}
                 onNoteAdd={onNoteAdd}
                 onNoteDelete={onNoteDelete}
                 onNoteEdit={handleEditMode}
